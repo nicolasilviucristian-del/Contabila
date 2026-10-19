@@ -1,0 +1,882 @@
+<!DOCTYPE html>
+<html lang="ro">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="theme-color" content="#f6f7f5">
+  <title>Contabilă — gestiune financiară</title>
+  <style>
+    @import url('https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&family=Manrope:wght@400;500;600;700;800&display=swap');
+    :root {
+      --bg: #f6f7f5; --surface: #fff; --ink: #202522; --muted: #858c87; --line: #e9ece8;
+      --green: #277b55; --green-dark: #1d6444; --green-soft: #eaf4ed; --sidebar: #173b2d;
+      --sidebar-muted: #a4b9ac; --amber: #a66d14; --amber-soft: #fbf3e5; --red: #bd5149;
+      --red-soft: #fbefed; --blue: #507ca6; --blue-soft: #edf3f8; --radius: 14px;
+      font-family: "DM Sans", sans-serif; color: var(--ink); background: var(--bg); font-synthesis: none;
+    }
+    * { box-sizing: border-box; }
+    body { margin: 0; min-height: 100vh; }
+    button, input, select { font: inherit; }
+    button { cursor: pointer; }
+    .app { min-height: 100vh; }
+    .sidebar { width: 244px; position: fixed; inset: 0 auto 0 0; background: var(--sidebar); color: white; padding: 25px 16px 20px; display: flex; flex-direction: column; z-index: 5; }
+    .brand { display: flex; align-items: center; gap: 11px; padding: 0 11px 31px; }
+    .brand-mark { width: 34px; height: 34px; border-radius: 11px; background: #d9eddf; color: var(--sidebar); display: grid; place-items: center; }
+    .brand-name { font: 800 20px Manrope, sans-serif; letter-spacing: -.8px; }
+    .brand-name span { color: #a9d2b5; }
+    .side-label { color: #849e8e; font-size: 10px; font-weight: 700; letter-spacing: 1.35px; text-transform: uppercase; padding: 0 11px; margin: 4px 0 10px; }
+    .nav { display: grid; gap: 4px; }
+    .nav-btn { width: 100%; border: 0; background: transparent; color: var(--sidebar-muted); display: flex; align-items: center; gap: 12px; text-align: left; padding: 11px 12px; border-radius: 9px; font-size: 13px; font-weight: 500; transition: .18s; }
+    .nav-btn:hover { color: #fff; background: #244a39; }
+    .nav-btn.active { color: #fff; background: #2d5c43; box-shadow: inset 3px 0 #9bd2a9; }
+    .nav-btn svg { width: 18px; height: 18px; opacity: .9; }
+    .nav-count { margin-left: auto; padding: 2px 7px; border-radius: 10px; color: #d5ebd9; background: #355b45; font-size: 10px; }
+    .sidebar-bottom { margin-top: auto; }
+    .help-card { border: 1px solid #345745; border-radius: 12px; padding: 14px; margin: 15px 4px 17px; }
+    .help-card strong { font-size: 12px; display: block; margin: 0 0 6px; }
+    .help-card p { color: #acc0b2; font-size: 11px; line-height: 1.55; margin: 0 0 10px; }
+    .help-card button { color: #c4e3cc; padding: 0; border: 0; background: transparent; font-size: 11px; font-weight: 700; }
+    .profile { border-top: 1px solid #345343; padding: 17px 7px 0; display: flex; align-items: center; gap: 10px; }
+    .avatar { width: 34px; height: 34px; border-radius: 50%; display: grid; place-items: center; color: #244532; background: #d9e9da; font-size: 11px; font-weight: 700; }
+    .profile-copy { min-width: 0; flex: 1; }
+    .profile-copy strong { font-size: 11px; display: block; }
+    .profile-copy span { color: #a2b7a9; font-size: 10px; }
+    .main { margin-left: 244px; min-height: 100vh; }
+    .topbar { height: 70px; padding: 0 42px; display: flex; align-items: center; justify-content: space-between; border-bottom: 1px solid var(--line); background: rgba(255,255,255,.75); }
+    .breadcrumbs { color: var(--muted); font-size: 12px; }
+    .breadcrumbs strong { color: var(--ink); font-weight: 600; }
+    .top-actions { display: flex; align-items: center; gap: 12px; }
+    .company-select { min-width: 200px; border: 1px solid var(--line); background: white; padding: 9px 33px 9px 12px; border-radius: 8px; color: #313b34; font-size: 11px; font-weight: 600; }
+    .icon-btn { border: 1px solid var(--line); background: white; width: 35px; height: 35px; display: grid; place-items: center; border-radius: 9px; color: #68726b; position: relative; }
+    .icon-btn svg { width: 16px; height: 16px; }
+    .notification-wrap { position: relative; }
+    .notification-wrap .icon-btn[aria-expanded="true"] { color: var(--green); border-color: #b7d2be; background: #f8fcf8; }
+    .notif-badge { position: absolute; top: -6px; right: -7px; min-width: 17px; height: 17px; padding: 0 4px; border: 2px solid white; border-radius: 12px; background: #dc584d; color: white; display: grid; place-items: center; font-size: 8px; line-height: 1; font-weight: 700; }
+    .notif-badge[hidden] { display: none; }
+    .notification-popover { position: absolute; top: calc(100% + 12px); right: 0; z-index: 8; width: min(370px, calc(100vw - 28px)); max-height: min(540px, calc(100vh - 88px)); overflow: hidden; background: white; border: 1px solid var(--line); border-radius: 13px; box-shadow: 0 14px 42px #17261d24; display: none; }
+    .notification-popover.open { display: block; animation: rise .16s ease-out; }
+    .notification-head { min-height: 57px; padding: 14px 16px; border-bottom: 1px solid var(--line); display: flex; justify-content: space-between; align-items: center; gap: 10px; }
+    .notification-head h2 { margin: 0; font: 700 13px Manrope, sans-serif; }
+    .notification-head span { display: block; margin-top: 4px; color: var(--muted); font-size: 10px; }
+    .notification-close { width: 28px; height: 28px; flex: 0 0 auto; border: 0; background: #f3f5f2; color: #68736b; border-radius: 7px; font-size: 18px; }
+    .notification-list { max-height: min(420px, calc(100vh - 210px)); overflow: auto; }
+    .notification-section { padding: 11px 15px 4px; color: #898f8a; text-transform: uppercase; font-size: 9px; font-weight: 700; letter-spacing: .75px; }
+    .notification-item { display: flex; width: 100%; align-items: flex-start; gap: 11px; padding: 12px 15px; border: 0; background: white; text-align: left; color: var(--ink); transition: background .15s; }
+    .notification-item:hover, .notification-item:focus-visible { background: #f6f8f5; outline: none; }
+    .notification-icon { width: 31px; height: 31px; flex: 0 0 auto; display: grid; place-items: center; border-radius: 50%; font-size: 15px; font-weight: 700; }
+    .notification-icon.overdue { background: var(--red-soft); color: var(--red); }
+    .notification-icon.due-soon { background: var(--amber-soft); color: var(--amber); }
+    .notification-copy { min-width: 0; flex: 1; }
+    .notification-copy strong { display: flex; justify-content: space-between; gap: 8px; font-size: 10px; font-weight: 700; }
+    .notification-copy strong span { color: var(--muted); font-size: 9px; font-weight: 500; white-space: nowrap; }
+    .notification-copy p { margin: 4px 0 0; color: #626c65; font-size: 10px; line-height: 1.5; }
+    .notification-copy small { display: block; overflow: hidden; margin-top: 4px; color: var(--muted); font-size: 9px; text-overflow: ellipsis; white-space: nowrap; }
+    .notification-empty { padding: 30px 20px; color: var(--muted); text-align: center; font-size: 11px; line-height: 1.6; }
+    .notification-footer { padding: 10px 14px; border-top: 1px solid var(--line); }
+    .notification-footer button { width: 100%; border: 0; border-radius: 7px; padding: 9px; background: #f4f7f3; color: var(--green); font-size: 10px; font-weight: 700; }
+    .notification-footer button:hover { background: var(--green-soft); }
+    @keyframes notification-flash { 0%, 100% { background: transparent; } 20%, 70% { background: #eaf4ed; } }
+    .notification-target { animation: notification-flash 2.4s ease-out; }
+    .page { max-width: 1360px; padding: 34px 42px 54px; margin: 0 auto; }
+    .welcome { display: flex; align-items: flex-start; justify-content: space-between; margin-bottom: 25px; }
+    .eyebrow { color: var(--green); font-size: 10px; font-weight: 700; letter-spacing: 1.3px; text-transform: uppercase; margin: 0 0 7px; }
+    h1 { font: 700 26px Manrope, sans-serif; letter-spacing: -.8px; margin: 0; }
+    .subtitle { color: var(--muted); font-size: 12px; margin: 7px 0 0; }
+    .welcome-right { display: flex; align-items: center; gap: 10px; }
+    .period-select { border: 1px solid var(--line); color: #606963; background: white; border-radius: 8px; font-size: 11px; padding: 9px 11px; }
+    .primary-btn { border: 0; border-radius: 8px; color: white; background: var(--green); padding: 10px 14px; font-size: 11px; font-weight: 700; display: inline-flex; align-items: center; gap: 8px; transition: .2s; }
+    .primary-btn:hover { background: var(--green-dark); transform: translateY(-1px); }
+    .primary-btn svg { width: 15px; height: 15px; }
+    .secondary-btn { border: 1px solid var(--line); background: white; color: #46504a; border-radius: 8px; padding: 9px 12px; font-size: 11px; font-weight: 600; }
+    .secondary-btn:hover { border-color: #bdc9bf; }
+    .stat-grid { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 14px; margin-bottom: 18px; }
+    .stat-card { background: var(--surface); border: 1px solid var(--line); border-radius: var(--radius); padding: 17px 18px 16px; min-height: 130px; }
+    .stat-top { display: flex; justify-content: space-between; align-items: center; color: var(--muted); font-size: 11px; }
+    .stat-icon { width: 29px; height: 29px; border-radius: 9px; display: grid; place-items: center; }
+    .stat-icon svg { width: 15px; height: 15px; }
+    .stat-icon.income { color: var(--green); background: var(--green-soft); }
+    .stat-icon.expense { color: var(--red); background: var(--red-soft); }
+    .stat-icon.balance { color: var(--blue); background: var(--blue-soft); }
+    .stat-icon.pending { color: var(--amber); background: var(--amber-soft); }
+    .stat-value { font: 700 22px Manrope, sans-serif; letter-spacing: -.6px; margin: 12px 0 7px; }
+    .stat-foot { font-size: 10px; color: var(--muted); display: flex; gap: 5px; align-items: center; }
+    .trend { color: var(--green); font-weight: 700; }
+    .trend.down { color: var(--red); }
+    .content-grid { display: grid; grid-template-columns: minmax(0, 1.62fr) minmax(270px, .9fr); gap: 16px; margin-bottom: 17px; }
+    .panel { background: var(--surface); border: 1px solid var(--line); border-radius: var(--radius); }
+    .panel-head { padding: 18px 19px 14px; display: flex; justify-content: space-between; align-items: center; }
+    .panel-title { font: 700 13px Manrope, sans-serif; margin: 0; }
+    .panel-note { font-size: 10px; color: var(--muted); margin-top: 4px; }
+    .text-link { font-size: 10px; font-weight: 700; color: var(--green); border: 0; background: transparent; padding: 4px; }
+    .chart-wrap { padding: 0 18px 17px; }
+    .chart-legend { display: flex; gap: 16px; font-size: 10px; color: #727a74; }
+    .legend-dot { display: inline-block; width: 7px; height: 7px; border-radius: 50%; margin-right: 5px; }
+    .legend-dot.green { background: #4b9669; } .legend-dot.gray { background: #d8e2db; }
+    .chart { height: 160px; position: relative; margin-top: 17px; }
+    .chart svg { width: 100%; height: 100%; overflow: visible; }
+    .chart-tooltip { position: absolute; top: 2px; left: 56%; background: #213a2c; color: white; font-size: 9px; padding: 6px 8px; border-radius: 5px; box-shadow: 0 4px 12px #23392b30; }
+    .chart-tooltip::after { content: ""; position: absolute; left: 50%; bottom: -4px; width: 7px; height: 7px; background: #213a2c; transform: rotate(45deg); }
+    .activity-list { padding: 0 18px 10px; }
+    .activity-row { display: flex; align-items: center; gap: 10px; padding: 12px 0; border-top: 1px solid #f0f1ef; }
+    .activity-icon { width: 30px; height: 30px; display: grid; place-items: center; border-radius: 9px; flex: 0 0 auto; }
+    .activity-icon svg { width: 14px; height: 14px; }
+    .activity-icon.in { color: var(--green); background: var(--green-soft); }
+    .activity-icon.out { color: var(--red); background: var(--red-soft); }
+    .activity-text { min-width: 0; flex: 1; }
+    .activity-text strong { display: block; font-size: 10px; font-weight: 600; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+    .activity-text span { font-size: 9px; color: var(--muted); display: block; margin-top: 4px; }
+    .activity-amount { font-size: 10px; font-weight: 700; white-space: nowrap; }
+    .activity-amount.in { color: var(--green); } .activity-amount.out { color: var(--ink); }
+    .document-panel { overflow: hidden; }
+    .table-tools { display: flex; gap: 8px; align-items: center; }
+    .search-box { position: relative; }
+    .search-box svg { width: 14px; height: 14px; position: absolute; left: 10px; top: 9px; color: #9ba19d; }
+    .search-box input { width: 185px; border: 1px solid var(--line); border-radius: 7px; padding: 8px 9px 8px 30px; font-size: 10px; outline: none; }
+    .search-box input:focus { border-color: #9cbea5; }
+    .filter-select { border: 1px solid var(--line); background: white; border-radius: 7px; padding: 8px 9px; font-size: 10px; color: #677069; }
+    .table-scroll-wrap { position: relative; }
+    .table-scroll { overflow-x: auto; overscroll-behavior-x: contain; scrollbar-width: thin; scrollbar-color: #a9c5ae #f0f3ef; }
+    .table-scroll::-webkit-scrollbar { height: 8px; }
+    .table-scroll::-webkit-scrollbar-track { background: #f0f3ef; border-radius: 8px; }
+    .table-scroll::-webkit-scrollbar-thumb { background: #a9c5ae; border: 2px solid #f0f3ef; border-radius: 8px; }
+    .table-scroll table { min-width: 780px; }
+    .table-scroll th:first-child, .table-scroll td:first-child { position: sticky; left: 0; }
+    .table-scroll th:first-child { z-index: 2; background: #fafbf9; }
+    .table-scroll td:first-child { z-index: 1; background: white; }
+    .table-scroll-wrap.is-scrolled .table-scroll td:first-child { box-shadow: 6px 0 9px -8px #27372c80; }
+    .table-scroll-controls { display: none; }
+    table { width: 100%; border-collapse: collapse; text-align: left; white-space: nowrap; }
+    th { background: #fafbf9; color: #909792; text-transform: uppercase; letter-spacing: .6px; font-size: 9px; font-weight: 700; padding: 10px 18px; }
+    td { padding: 12px 18px; border-top: 1px solid #f0f1ef; font-size: 10px; color: #4c554f; }
+    .doc-cell { display: flex; align-items: center; gap: 9px; }
+    .doc-status-marker { width: 21px; height: 21px; flex: 0 0 21px; display: inline-grid; place-items: center; border-radius: 50%; font-size: 11px; font-weight: 700; line-height: 1; }
+    .doc-status-marker.paid { background: var(--green-soft); color: var(--green); }
+    .doc-status-marker.pending { background: var(--amber-soft); color: var(--amber); }
+    .doc-status-marker.overdue { background: var(--red-soft); color: var(--red); }
+    .doc-details { min-width: 0; }
+    .doc-number { font-weight: 700; color: #333d36; }
+    .doc-party { color: #343d37; font-weight: 600; }
+    .doc-type { font-size: 9px; color: #828a84; display: block; margin-top: 3px; }
+    .status { display: inline-flex; align-items: center; gap: 5px; padding: 5px 8px; border-radius: 20px; font-size: 9px; font-weight: 600; }
+    .status::before { content: ""; width: 5px; height: 5px; border-radius: 50%; background: currentColor; }
+    .status.paid { background: var(--green-soft); color: var(--green); }
+    .status.pending { background: var(--amber-soft); color: var(--amber); }
+    .status.overdue { background: var(--red-soft); color: var(--red); }
+    .amount { font-weight: 700; color: #37413a; }
+    .row-menu { width: 29px; height: 29px; border: 0; border-radius: 7px; color: #737d76; background: transparent; font-size: 17px; line-height: 1; }
+    .row-menu:hover, .row-menu[aria-expanded="true"] { color: var(--green); background: var(--green-soft); }
+    .row-action-menu { position: fixed; z-index: 9; width: 205px; padding: 5px; background: #fff; border: 1px solid var(--line); border-radius: 10px; box-shadow: 0 10px 32px #17261d24; display: none; }
+    .row-action-menu.open { display: block; animation: rise .14s ease-out; }
+    .row-action-menu button { display: flex; align-items: center; gap: 10px; width: 100%; padding: 9px 10px; border: 0; border-radius: 6px; background: transparent; text-align: left; color: #37413a; font-size: 11px; }
+    .row-action-menu button:hover, .row-action-menu button:focus-visible { outline: none; background: #f3f7f3; color: var(--green-dark); }
+    .row-action-menu button.danger { color: var(--red); }
+    .row-action-menu button.danger:hover, .row-action-menu button.danger:focus-visible { background: var(--red-soft); }
+    .row-action-menu button:disabled { opacity: .45; cursor: not-allowed; }
+    .row-action-menu .menu-icon { width: 15px; color: #87918a; font-size: 13px; text-align: center; }
+    .row-action-menu button.danger .menu-icon { color: var(--red); }
+    .row-action-separator { height: 1px; margin: 4px 5px; background: var(--line); }
+    .empty-row { text-align: center; color: var(--muted); padding: 28px; }
+    .table-footer { display: flex; justify-content: space-between; align-items: center; color: var(--muted); font-size: 10px; padding: 12px 18px; border-top: 1px solid var(--line); }
+    .shortcut-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 10px; margin-top: 17px; }
+    .shortcut { display: flex; align-items: center; gap: 10px; background: white; border: 1px solid var(--line); border-radius: 10px; text-align: left; padding: 11px 13px; color: var(--ink); }
+    .shortcut:hover { border-color: #aac9b2; background: #fcfefc; }
+    .shortcut-ico { color: var(--green); background: var(--green-soft); width: 29px; height: 29px; border-radius: 8px; display: grid; place-items: center; flex: 0 0 auto; }
+    .shortcut-ico svg { width: 15px; height: 15px; }
+    .shortcut strong { display: block; font-size: 10px; }
+    .shortcut small { display: block; color: var(--muted); font-size: 9px; margin-top: 3px; }
+    .toast { position: fixed; right: 24px; bottom: 24px; background: #203d2e; color: white; padding: 12px 17px; border-radius: 9px; font-size: 12px; box-shadow: 0 8px 30px #1b332333; z-index: 20; transform: translateY(16px); opacity: 0; transition: .25s; pointer-events: none; }
+    .toast.show { opacity: 1; transform: translateY(0); }
+    .modal-backdrop { position: fixed; inset: 0; background: #17221bab; z-index: 10; display: none; align-items: center; justify-content: center; padding: 18px; }
+    .modal-backdrop.open { display: flex; }
+    .modal { width: min(490px, 100%); background: white; border-radius: 15px; padding: 23px; box-shadow: 0 20px 60px #101b1540; animation: rise .2s ease-out; }
+    @keyframes rise { from { transform: translateY(8px); opacity: .7; } to { transform: translateY(0); opacity: 1; } }
+    .modal-heading { display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 20px; }
+    .modal-heading h2 { font: 700 18px Manrope, sans-serif; margin: 0; }
+    .modal-heading p { color: var(--muted); font-size: 11px; margin: 5px 0 0; }
+    .close-btn { width: 29px; height: 29px; border: 0; background: #f2f4f1; border-radius: 7px; font-size: 18px; color: #68736b; }
+    .form-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; }
+    .field { display: flex; flex-direction: column; gap: 6px; }
+    .field.full { grid-column: 1 / -1; }
+    .field label { color: #606963; font-size: 10px; font-weight: 700; }
+    .field input, .field select { width: 100%; padding: 10px 11px; color: #29332d; border: 1px solid #e3e8e3; border-radius: 7px; outline: none; font-size: 11px; background: #fff; }
+    .field input:focus, .field select:focus { border-color: #90b89b; box-shadow: 0 0 0 3px #eaf4ed; }
+    .file-input { padding: 10px !important; background: #fafbf9 !important; }
+    .field-hint { color: var(--muted); font-size: 9px; line-height: 1.5; }
+    .attachment-btn { color: var(--green); border: 0; background: transparent; padding: 4px 0; font-size: 10px; font-weight: 700; }
+    .attachment-empty { color: #a2a8a3; font-size: 10px; }
+    .modal-actions { display: flex; justify-content: flex-end; gap: 9px; margin-top: 22px; }
+    .mobile-menu { display: none; }
+    .subpage-card { min-height: 280px; display: grid; place-items: center; padding: 30px; text-align: center; }
+    .subpage-card .shortcut-ico { width: 44px; height: 44px; margin: 0 auto 13px; }
+    .subpage-card h2 { font: 700 17px Manrope, sans-serif; margin: 0 0 7px; }
+    .subpage-card p { max-width: 380px; color: var(--muted); font-size: 12px; line-height: 1.7; margin: 0 auto 17px; }
+    @media (max-width: 1050px) {
+      .sidebar { width: 215px; } .main { margin-left: 215px; } .page { padding-left: 26px; padding-right: 26px; } .topbar { padding: 0 26px; }
+      .stat-grid { grid-template-columns: repeat(2, 1fr); } .content-grid { grid-template-columns: minmax(0, 1.4fr) minmax(245px, .9fr); }
+    }
+    @media (max-width: 760px) {
+      .sidebar { width: 100%; height: auto; inset: auto 0 0; padding: 7px 8px calc(7px + env(safe-area-inset-bottom)); flex-direction: row; justify-content: space-around; border-top: 1px solid #345343; }
+      .brand, .side-label, .sidebar-bottom { display: none; }
+      .nav { display: flex; width: 100%; justify-content: space-around; gap: 0; }
+      .nav-btn { width: auto; padding: 8px 9px; flex-direction: column; gap: 4px; font-size: 9px; border-radius: 8px; }
+      .nav-btn.active { box-shadow: inset 0 -2px #9bd2a9; }
+      .nav-btn svg { width: 18px; height: 18px; } .nav-count { display: none; }
+      .main { margin-left: 0; padding-bottom: 76px; } .topbar { height: 57px; padding: 0 16px; } .breadcrumbs { display: none; } .top-actions { width: 100%; justify-content: flex-end; }
+      .company-select { margin-right: auto; min-width: 0; max-width: 215px; } .page { padding: 25px 16px 30px; }
+      .welcome { gap: 15px; } h1 { font-size: 22px; } .welcome-right { flex-direction: column-reverse; align-items: flex-end; gap: 7px; } .period-select { max-width: 130px; }
+      .content-grid { grid-template-columns: 1fr; } .shortcut-grid { grid-template-columns: repeat(2, 1fr); }
+      .table-scroll { scroll-behavior: smooth; -webkit-overflow-scrolling: touch; touch-action: pan-x pan-y; scrollbar-width: auto; scrollbar-color: #789b80 #eef2ed; }
+      .table-scroll::-webkit-scrollbar { height: 11px; }
+      .table-scroll::-webkit-scrollbar-thumb { background: #789b80; border: 3px solid #eef2ed; }
+      .table-scroll-controls { display: flex; align-items: center; justify-content: space-between; gap: 8px; min-height: 42px; padding: 5px 11px; border-bottom: 1px solid #f0f1ef; background: #fbfcfa; }
+      .table-swipe-hint { display: flex; align-items: center; gap: 6px; color: #67766a; font-size: 9px; }
+      .table-swipe-hint svg { width: 14px; height: 14px; flex: 0 0 auto; color: var(--green); }
+      .table-scroll-buttons { display: flex; gap: 5px; }
+      .table-scroll-button { display: grid; place-items: center; width: 29px; height: 29px; border: 1px solid #dfe7df; border-radius: 7px; color: var(--green-dark); background: white; font-size: 17px; line-height: 1; }
+      .table-scroll-button:disabled { opacity: .38; cursor: default; }
+      .table-scroll-wrap:not(.is-at-end)::after, .table-scroll-wrap.is-scrolled::before { content: ""; position: absolute; top: 42px; bottom: 0; width: 15px; pointer-events: none; z-index: 3; }
+      .table-scroll-wrap:not(.is-at-end)::after { right: 0; background: linear-gradient(90deg, transparent, #ffffffc7); }
+      .table-scroll-wrap.is-scrolled::before { left: 0; background: linear-gradient(90deg, #ffffffc7, transparent); }
+    }
+    @media (max-width: 450px) {
+      .stat-grid { gap: 9px; } .stat-card { min-height: 118px; padding: 13px; } .stat-value { font-size: 18px; }
+      .welcome { flex-direction: column; } .welcome-right { flex-direction: row; align-items: center; width: 100%; justify-content: space-between; }
+      .table-tools { flex-wrap: wrap; } .search-box input { width: 150px; } .panel-head { padding-left: 14px; padding-right: 14px; }
+      .form-grid { grid-template-columns: 1fr; } .field.full { grid-column: auto; }
+    }
+  </style>
+</head>
+<body>
+  <div class="app">
+    <aside class="sidebar">
+      <div class="brand"><div class="brand-mark"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><path d="M4 18.5 9 13l3 2 7-9"/><path d="M15 6h4v4"/></svg></div><div class="brand-name">contabilă<span>.</span></div></div>
+      <div class="side-label">Spațiul tău</div>
+      <nav class="nav" aria-label="Navigare principală">
+        <button class="nav-btn active" data-page="overview"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7"><rect x="3" y="3" width="8" height="8" rx="2"/><rect x="13" y="3" width="8" height="5" rx="2"/><rect x="13" y="10" width="8" height="11" rx="2"/><rect x="3" y="13" width="8" height="8" rx="2"/></svg>Prezentare</button>
+        <button class="nav-btn" data-page="documents"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><path d="M14 2v6h6M8 13h8M8 17h8"/></svg>Documente <span class="nav-count" id="navCount">0</span></button>
+        <button class="nav-btn" data-page="income"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7"><path d="M12 19V5m-7 7 7-7 7 7"/><path d="M4 20h16"/></svg>Încasări</button>
+        <button class="nav-btn" data-page="expenses"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7"><path d="M12 5v14m7-7-7 7-7-7"/><path d="M4 4h16"/></svg>Plăți</button>
+        <button class="nav-btn" data-page="reports"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7"><path d="M3 3v18h18"/><path d="m19 9-5 5-4-4-5 5"/></svg>Rapoarte</button>
+      </nav>
+      <div class="sidebar-bottom">
+        <div class="side-label" style="margin-top:27px">Preferințe</div>
+        <nav class="nav"><button class="nav-btn" data-page="companies"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7"><path d="M3 21h18M5 21V7l8-4v18M19 21V11l-6-4"/><path d="M9 9v.01M9 12v.01M9 15v.01M9 18v.01"/></svg>Companiile mele</button></nav>
+        <div class="help-card"><strong>Ai nevoie de ajutor?</strong><p>Găsești răspunsuri rapide în centrul nostru de ajutor.</p><button id="helpBtn">Descoperă ghidurile →</button></div>
+        <div class="profile"><div class="avatar">SN</div><div class="profile-copy"><strong>Sorin Nicola</strong><span>Administrator</span></div><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="#a2b7a9" stroke-width="2"><path d="m7 10 5 5 5-5"/></svg></div>
+      </div>
+    </aside>
+    <main class="main">
+      <header class="topbar">
+        <div class="breadcrumbs"><span>Contabilă</span><span style="margin:0 8px;color:#c2c7c3">/</span><strong id="crumb">Prezentare</strong></div>
+        <div class="top-actions">
+          <select class="company-select" id="companySelect" aria-label="Alege compania"></select>
+          <div class="notification-wrap" id="notificationWrap">
+            <button class="icon-btn" id="notificationBtn" aria-label="Notificări" aria-haspopup="dialog" aria-expanded="false" aria-controls="notificationPopover"><span class="notif-badge" id="notificationCount" hidden></span><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7"><path d="M18 8a6 6 0 0 0-12 0c0 7-3 7-3 9h18c0-2-3-2-3-9M10 21h4"/></svg></button>
+            <section class="notification-popover" id="notificationPopover" role="dialog" aria-label="Notificări" aria-hidden="true"></section>
+          </div>
+        </div>
+      </header>
+      <div class="page" id="pageContent"></div>
+    </main>
+  </div>
+  <div class="toast" id="toast" role="status"></div>
+  <div class="row-action-menu" id="rowActionMenu" role="menu" aria-label="Acțiuni document"></div>
+  <div class="modal-backdrop" id="modalBackdrop" role="dialog" aria-modal="true" aria-labelledby="modalTitle">
+    <div class="modal" id="modalContent"></div>
+  </div>
+  <script>
+    const icons = {
+      plus: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 5v14M5 12h14"/></svg>',
+      search: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><circle cx="11" cy="11" r="7"/><path d="m20 20-4-4"/></svg>',
+      receipt: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M4 3h16v18l-4-2-4 2-4-2-4 2z"/><path d="M8 8h8M8 12h8M8 16h3"/></svg>',
+      arrowUp: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M12 19V5m-7 7 7-7 7 7"/></svg>',
+      arrowDown: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M12 5v14m7-7-7 7-7-7"/></svg>',
+      wallet: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M20 8V5a2 2 0 0 0-2-2H5a3 3 0 0 0 0 6h15v12H5a3 3 0 0 1-3-3V6"/><path d="M20 12h-4a2 2 0 0 0 0 4h4z"/></svg>',
+      clock: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/></svg>',
+      building: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M3 21h18M5 21V7l8-4v18M19 21V11l-6-4"/><path d="M9 9v.01M9 12v.01M9 15v.01M9 18v.01"/></svg>'
+    };
+    const today = new Date();
+    const isoDate = date => `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}-${String(date.getDate()).padStart(2, '0')}`;
+    const dateOffset = days => isoDate(new Date(today.getFullYear(), today.getMonth(), today.getDate() + days));
+    const monthOffset = months => isoDate(new Date(today.getFullYear(), today.getMonth() + months, 15));
+    const documentYear = today.getFullYear();
+    const initialCompanies = [
+      { id: 'c1', name: 'Nordic Creative SRL', cui: 'RO41256789' },
+      { id: 'c2', name: 'Atelier Verde SRL', cui: 'RO39871245' }
+    ];
+    const initialDocs = [
+      { id: 'd1', company: 'c1', number: `FAC-${documentYear}-084`, type: 'Factură emisă', party: 'Studio Forma SRL', date: dateOffset(-3), due: dateOffset(27), amount: 8450, status: 'pending', direction: 'in' },
+      { id: 'd2', company: 'c1', number: `CH-${documentYear}-031`, type: 'Chitanță', party: 'Papetărie Office Plus', date: dateOffset(-4), due: dateOffset(-4), amount: 428.5, status: 'paid', direction: 'out' },
+      { id: 'd3', company: 'c1', number: `FAC-${documentYear}-083`, type: 'Factură emisă', party: 'TechVentures SRL', date: dateOffset(-6), due: dateOffset(4), amount: 12750, status: 'paid', direction: 'in' },
+      { id: 'd4', company: 'c1', number: `FAC-${documentYear}-082`, type: 'Factură emisă', party: 'Mara Ionescu PFA', date: dateOffset(-9), due: dateOffset(-2), amount: 3200, status: 'overdue', direction: 'in' },
+      { id: 'd5', company: 'c1', number: `FCT-${documentYear}-019`, type: 'Factură furnizor', party: 'Cloud Services Europe', date: dateOffset(-11), due: dateOffset(4), amount: 695, status: 'pending', direction: 'out' },
+      { id: 'd6', company: 'c1', number: `FAC-${documentYear}-081`, type: 'Factură emisă', party: 'Arhitectura Contemporană', date: dateOffset(-13), due: dateOffset(-3), amount: 5600, status: 'paid', direction: 'in' },
+      { id: 'd8', company: 'c1', number: `FAC-${documentYear}-075`, type: 'Factură emisă', party: 'Studio Forma SRL', date: monthOffset(-1), due: monthOffset(-1), amount: 7200, status: 'paid', direction: 'in' },
+      { id: 'd9', company: 'c1', number: `FCT-${documentYear}-016`, type: 'Factură furnizor', party: 'Tipografia Centrală', date: monthOffset(-1), due: monthOffset(-1), amount: 800, status: 'paid', direction: 'out' },
+      { id: 'd10', company: 'c1', number: `FAC-${documentYear}-068`, type: 'Factură emisă', party: 'TechVentures SRL', date: monthOffset(-2), due: monthOffset(-2), amount: 11200, status: 'paid', direction: 'in' },
+      { id: 'd11', company: 'c1', number: `FCT-${documentYear}-013`, type: 'Factură furnizor', party: 'Cloud Services Europe', date: monthOffset(-2), due: monthOffset(-2), amount: 1100, status: 'paid', direction: 'out' },
+      { id: 'd12', company: 'c1', number: `FAC-${documentYear}-059`, type: 'Factură emisă', party: 'Mara Ionescu PFA', date: monthOffset(-3), due: monthOffset(-3), amount: 9300, status: 'paid', direction: 'in' },
+      { id: 'd13', company: 'c1', number: `FCT-${documentYear}-010`, type: 'Factură furnizor', party: 'Papetărie Office Plus', date: monthOffset(-3), due: monthOffset(-3), amount: 1750, status: 'paid', direction: 'out' },
+      { id: 'd14', company: 'c1', number: `FAC-${documentYear}-048`, type: 'Factură emisă', party: 'Arhitectura Contemporană', date: monthOffset(-4), due: monthOffset(-4), amount: 16400, status: 'paid', direction: 'in' },
+      { id: 'd15', company: 'c1', number: `FCT-${documentYear}-008`, type: 'Factură furnizor', party: 'Cloud Services Europe', date: monthOffset(-4), due: monthOffset(-4), amount: 1800, status: 'paid', direction: 'out' },
+      { id: 'd16', company: 'c1', number: `FAC-${documentYear}-037`, type: 'Factură emisă', party: 'Studio Forma SRL', date: monthOffset(-5), due: monthOffset(-5), amount: 9800, status: 'paid', direction: 'in' },
+      { id: 'd17', company: 'c1', number: `FCT-${documentYear}-004`, type: 'Factură furnizor', party: 'Papetărie Office Plus', date: monthOffset(-5), due: monthOffset(-5), amount: 1900, status: 'paid', direction: 'out' },
+      { id: 'd7', company: 'c2', number: `FAC-${documentYear}-012`, type: 'Factură emisă', party: 'Green Hub SRL', date: dateOffset(-2), due: dateOffset(28), amount: 4720, status: 'pending', direction: 'in' }
+    ];
+    let companies = JSON.parse(localStorage.getItem('contabila_companies') || 'null') || initialCompanies;
+    let documents = JSON.parse(localStorage.getItem('contabila_documents') || 'null') || initialDocs;
+    let activeCompany = localStorage.getItem('contabila_active_company') || companies[0]?.id;
+    let activePage = 'overview';
+    let activePeriod = 0;
+    let statusFilter = 'all';
+    let searchTerm = '';
+    const pageTitles = { overview: 'Prezentare', documents: 'Documente', income: 'Încasări', expenses: 'Plăți', reports: 'Rapoarte', companies: 'Companiile mele' };
+    const money = value => new Intl.NumberFormat('ro-RO', { minimumFractionDigits: 2, maximumFractionDigits: 2 }).format(value) + ' lei';
+    const shortMoney = value => new Intl.NumberFormat('ro-RO', { maximumFractionDigits: 0 }).format(value) + ' lei';
+    const dateRo = value => new Intl.DateTimeFormat('ro-RO', { day: '2-digit', month: 'short', year: 'numeric' }).format(new Date(value + 'T12:00:00'));
+    const safe = value => String(value).replace(/[&<>"']/g, char => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[char]));
+    function getNotifications() {
+      const todayValue = isoDate(today);
+      const todayDate = new Date(`${todayValue}T00:00:00`);
+      const nextWeek = new Date(todayDate);
+      nextWeek.setDate(nextWeek.getDate() + 7);
+      const nextWeekValue = isoDate(nextWeek);
+      const unpaidDocs = companyDocs().filter(doc => doc.status !== 'paid');
+      const overdue = [];
+      const dueSoon = [];
+      unpaidDocs.forEach(doc => {
+        const daysUntilDue = Math.round((new Date(`${doc.due}T00:00:00`) - todayDate) / 86400000);
+        if (doc.status === 'overdue' || daysUntilDue < 0) overdue.push({ doc, daysUntilDue });
+        else if (doc.due <= nextWeekValue) dueSoon.push({ doc, daysUntilDue });
+      });
+      overdue.sort((a, b) => a.doc.due.localeCompare(b.doc.due));
+      dueSoon.sort((a, b) => a.doc.due.localeCompare(b.doc.due));
+      return { overdue, dueSoon };
+    }
+    function notificationItemMarkup(item, kind) {
+      const { doc, daysUntilDue } = item;
+      const overdue = kind === 'overdue';
+      const description = overdue
+        ? daysUntilDue < 0 ? `Restantă de ${Math.abs(daysUntilDue)} ${Math.abs(daysUntilDue) === 1 ? 'zi' : 'zile'} · scadentă ${dateRo(doc.due)}` : `Marcată ca restantă · scadență ${dateRo(doc.due)}`
+        : daysUntilDue === 0 ? 'Scadentă astăzi'
+          : daysUntilDue === 1 ? 'Scadentă mâine'
+            : `Scadentă în ${daysUntilDue} zile · ${dateRo(doc.due)}`;
+      return `<button class="notification-item" type="button" data-notification-doc="${safe(doc.id)}"><span class="notification-icon ${overdue ? 'overdue' : 'due-soon'}">${overdue ? '!' : '◷'}</span><span class="notification-copy"><strong>${overdue ? 'Factură restantă' : 'Scadență apropiată'}<span>${dateRo(doc.date)}</span></strong><p>${safe(doc.number)} · ${safe(doc.party)}</p><small>${description} · ${money(doc.amount)}</small></span></button>`;
+    }
+    function renderNotificationPopover() {
+      const { overdue, dueSoon } = getNotifications();
+      const count = overdue.length + dueSoon.length;
+      const badge = document.getElementById('notificationCount');
+      badge.textContent = count > 99 ? '99+' : String(count);
+      badge.hidden = count === 0;
+      const company = companies.find(item => item.id === activeCompany);
+      const popover = document.getElementById('notificationPopover');
+      popover.innerHTML = `<div class="notification-head"><div><h2>Notificări</h2><span>${count ? `${count} ${count === 1 ? 'element de verificat' : 'elemente de verificat'} · ${safe(company?.name || '')}` : `Ești la zi · ${safe(company?.name || '')}`}</span></div><button class="notification-close" type="button" aria-label="Închide notificările">×</button></div><div class="notification-list">${count ? `${overdue.length ? `<div class="notification-section">Restante · ${overdue.length}</div>${overdue.map(item => notificationItemMarkup(item, 'overdue')).join('')}` : ''}${dueSoon.length ? `<div class="notification-section">Scadente în următoarele 7 zile · ${dueSoon.length}</div>${dueSoon.map(item => notificationItemMarkup(item, 'due-soon')).join('')}` : ''}` : '<div class="notification-empty">Nu ai facturi restante sau scadente în următoarele 7 zile.</div>'}</div><div class="notification-footer"><button type="button" data-notification-page>Vezi toate documentele</button></div>`;
+      if (popover.classList.contains('open')) popover.setAttribute('aria-hidden', 'false');
+    }
+    function closeRowActionMenu(returnFocus = false) {
+      const menu = document.getElementById('rowActionMenu');
+      const triggerId = menu.dataset.triggerId;
+      menu.classList.remove('open');
+      menu.replaceChildren();
+      menu.removeAttribute('data-document-id');
+      menu.removeAttribute('data-trigger-id');
+      document.querySelectorAll('.row-menu[aria-expanded="true"]').forEach(button => button.setAttribute('aria-expanded', 'false'));
+      if (returnFocus && triggerId) document.querySelector(`[data-row-menu="${CSS.escape(triggerId)}"]`)?.focus();
+    }
+    function openRowActionMenu(trigger, id) {
+      const doc = documents.find(item => item.id === id);
+      if (!doc) { toast('Documentul nu mai este disponibil.'); return; }
+      const menu = document.getElementById('rowActionMenu');
+      if (menu.dataset.documentId === id && menu.classList.contains('open')) { closeRowActionMenu(); return; }
+      closeRowActionMenu();
+      menu.dataset.documentId = id;
+      menu.dataset.triggerId = id;
+      menu.innerHTML = `<button type="button" role="menuitem" data-row-action="toggle-status" data-document-id="${safe(id)}"><span class="menu-icon">${doc.status === 'paid' ? '↶' : '✓'}</span>${doc.status === 'paid' ? 'Marchează ca neachitată' : 'Marchează ca achitată'}</button><button type="button" role="menuitem" data-row-action="edit" data-document-id="${safe(id)}"><span class="menu-icon">✎</span>Editează documentul</button><button type="button" role="menuitem" data-row-action="open-pdf" data-document-id="${safe(id)}" ${doc.attachment ? '' : 'disabled'}><span class="menu-icon">↗</span>${doc.attachment ? 'Deschide PDF-ul atașat' : 'Nu există PDF atașat'}</button><div class="row-action-separator" role="separator"></div><button type="button" role="menuitem" class="danger" data-row-action="delete" data-document-id="${safe(id)}"><span class="menu-icon">×</span>Șterge documentul</button>`;
+      trigger.setAttribute('aria-expanded', 'true');
+      menu.classList.add('open');
+      const rect = trigger.getBoundingClientRect();
+      const menuRect = menu.getBoundingClientRect();
+      const left = Math.max(8, Math.min(rect.right - menuRect.width, window.innerWidth - menuRect.width - 8));
+      const top = rect.bottom + menuRect.height + 8 <= window.innerHeight
+        ? rect.bottom + 4
+        : Math.max(8, rect.top - menuRect.height - 4);
+      menu.style.left = `${left}px`;
+      menu.style.top = `${top}px`;
+      menu.querySelector('[role="menuitem"]:not(:disabled)')?.focus({ preventScroll: true });
+    }
+    function closeNotificationPopover() {
+      const popover = document.getElementById('notificationPopover');
+      popover.classList.remove('open');
+      popover.setAttribute('aria-hidden', 'true');
+      document.getElementById('notificationBtn').setAttribute('aria-expanded', 'false');
+    }
+    function openNotificationPopover() {
+      renderNotificationPopover();
+      const popover = document.getElementById('notificationPopover');
+      popover.classList.add('open');
+      popover.setAttribute('aria-hidden', 'false');
+      document.getElementById('notificationBtn').setAttribute('aria-expanded', 'true');
+    }
+    function goToNotificationDocument(id) {
+      const doc = companyDocs().find(item => item.id === id);
+      if (!doc) { closeNotificationPopover(); toast('Documentul nu mai este disponibil.'); return; }
+      closeNotificationPopover();
+      activePage = 'documents';
+      statusFilter = 'all';
+      searchTerm = doc.number;
+      render();
+      requestAnimationFrame(() => {
+        const row = [...document.querySelectorAll('[data-doc-row]')].find(element => element.dataset.docRow === id);
+        if (!row) return;
+        row.classList.add('notification-target');
+        row.scrollIntoView({ behavior: 'smooth', block: 'center' });
+        row.setAttribute('tabindex', '-1');
+        row.focus({ preventScroll: true });
+      });
+    }
+    const MAX_PDF_SIZE = 20 * 1024 * 1024;
+    let attachmentDbPromise;
+    function openAttachmentDb() {
+      if (!('indexedDB' in window)) return Promise.reject(new Error('Acest browser nu permite stocarea locală a fișierelor.'));
+      if (!attachmentDbPromise) {
+        attachmentDbPromise = new Promise((resolve, reject) => {
+          const request = indexedDB.open('contabila_attachments', 1);
+          request.onupgradeneeded = () => {
+            if (!request.result.objectStoreNames.contains('attachments')) request.result.createObjectStore('attachments', { keyPath: 'id' });
+          };
+          request.onsuccess = () => resolve(request.result);
+          request.onerror = () => {
+            attachmentDbPromise = null;
+            reject(request.error || new Error('Nu s-a putut deschide arhiva locală de fișiere.'));
+          };
+          request.onblocked = () => {
+            attachmentDbPromise = null;
+            reject(new Error('Arhiva locală este ocupată de o altă filă. Închide filele duplicat și încearcă din nou.'));
+          };
+        });
+      }
+      return attachmentDbPromise;
+    }
+    async function storeAttachment(attachment) {
+      const db = await openAttachmentDb();
+      return new Promise((resolve, reject) => {
+        const transaction = db.transaction('attachments', 'readwrite');
+        transaction.objectStore('attachments').put(attachment);
+        transaction.oncomplete = () => resolve();
+        transaction.onerror = () => reject(transaction.error || new Error('Nu s-a putut salva PDF-ul în arhiva locală.'));
+        transaction.onabort = () => reject(transaction.error || new Error('Salvarea PDF-ului a fost anulată.'));
+      });
+    }
+    async function getAttachment(id) {
+      const db = await openAttachmentDb();
+      return new Promise((resolve, reject) => {
+        const transaction = db.transaction('attachments', 'readonly');
+        const request = transaction.objectStore('attachments').get(id);
+        request.onsuccess = () => resolve(request.result || null);
+        request.onerror = () => reject(request.error || new Error('Nu s-a putut citi PDF-ul din arhiva locală.'));
+      });
+    }
+    async function removeAttachment(id) {
+      const db = await openAttachmentDb();
+      return new Promise((resolve, reject) => {
+        const transaction = db.transaction('attachments', 'readwrite');
+        transaction.objectStore('attachments').delete(id);
+        transaction.oncomplete = () => resolve();
+        transaction.onerror = () => reject(transaction.error || new Error('Nu s-a putut șterge PDF-ul temporar.'));
+      });
+    }
+    function saveData() {
+      localStorage.setItem('contabila_companies', JSON.stringify(companies));
+      localStorage.setItem('contabila_documents', JSON.stringify(documents));
+      localStorage.setItem('contabila_active_company', activeCompany || '');
+    }
+    function companyDocs() { return documents.filter(doc => doc.company === activeCompany); }
+    function statusLabel(status) { return ({ paid: 'Achitată', pending: 'În așteptare', overdue: 'Restantă' })[status] || status; }
+    function updateCompanySelect() {
+      const select = document.getElementById('companySelect');
+      if (!companies.some(company => company.id === activeCompany)) activeCompany = companies[0]?.id;
+      select.innerHTML = companies.map(company => `<option value="${safe(company.id)}">${safe(company.name)}</option>`).join('');
+      select.value = activeCompany || '';
+      document.getElementById('navCount').textContent = companyDocs().length;
+    }
+    function statCard(label, value, icon, tone, note, trend = '') {
+      return `<article class="stat-card"><div class="stat-top">${label}<span class="stat-icon ${tone}">${icons[icon]}</span></div><div class="stat-value">${value}</div><div class="stat-foot">${trend ? `<span class="trend ${trend.startsWith('−') ? 'down' : ''}">${trend}</span>` : ''}${note}</div></article>`;
+    }
+    function docsTable(docs, compact = false) {
+      const filtered = docs.filter(doc => (statusFilter === 'all' || doc.status === statusFilter) &&
+        (!searchTerm || `${doc.number} ${doc.party} ${doc.type}`.toLowerCase().includes(searchTerm.toLowerCase())));
+      const scrollControls = `<div class="table-scroll-controls"><span class="table-swipe-hint"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M7 8 3 12l4 4M3 12h18m-4-4 4 4-4 4"/></svg>Glisează lateral pentru toate coloanele</span><span class="table-scroll-buttons"><button class="table-scroll-button" type="button" data-table-scroll="-1" aria-label="Derulează tabelul spre stânga" disabled>‹</button><button class="table-scroll-button" type="button" data-table-scroll="1" aria-label="Derulează tabelul spre dreapta">›</button></span></div>`;
+      return `<div class="table-scroll-wrap">${scrollControls}<div class="table-scroll" tabindex="0" role="region" aria-label="Registru de documente — glisează orizontal pentru a vedea toate coloanele"><table><thead><tr><th>Document</th><th>Partener</th><th>Data</th><th>Scadență</th><th>Valoare</th><th>Stare</th><th>Fișier</th><th></th></tr></thead><tbody>${filtered.length ? filtered.slice(0, compact ? 5 : 100).map(doc => `      <tr data-doc-row="${safe(doc.id)}">
+        <td><span class="doc-cell"><span class="doc-status-marker ${safe(doc.status)}" role="img" aria-label="Stare: ${safe(statusLabel(doc.status))}" title="Stare: ${safe(statusLabel(doc.status))}">${doc.status === 'paid' ? '✓' : doc.status === 'overdue' ? '!' : '◷'}</span><span class="doc-details"><span class="doc-number">${safe(doc.number)}</span><span class="doc-type">${safe(doc.type)}</span></span></span></td>
+        <td class="doc-party">${safe(doc.party)}</td><td>${dateRo(doc.date)}</td><td>${dateRo(doc.due)}</td>
+        <td class="amount">${money(doc.amount)}</td><td><span class="status ${doc.status}">${statusLabel(doc.status)}</span></td>
+        <td>${doc.attachment ? `<button class="attachment-btn" data-attachment="${safe(doc.id)}" aria-label="Deschide PDF-ul ${safe(doc.attachment.name)}" title="${safe(doc.attachment.name)}">PDF ↗</button>` : '<span class="attachment-empty">—</span>'}</td>
+        <td><button class="row-menu" type="button" title="Mai multe acțiuni" aria-label="Mai multe acțiuni pentru ${safe(doc.number)}" aria-haspopup="menu" aria-expanded="false" data-row-menu="${safe(doc.id)}">···</button></td>
+      </tr>`).join('') : `<tr><td colspan="8" class="empty-row">Nu s-au găsit documente. Încearcă alt filtru sau adaugă un document nou.</td></tr>`}</tbody></table></div></div>`;
+    }
+    function wireTableScroll(container = document) {
+      container.querySelectorAll('.table-scroll-wrap').forEach(wrap => {
+        const scroller = wrap.querySelector('.table-scroll');
+        const update = () => {
+          const maxScroll = Math.max(0, scroller.scrollWidth - scroller.clientWidth);
+          wrap.classList.toggle('is-scrolled', scroller.scrollLeft > 1);
+          wrap.classList.toggle('is-at-end', scroller.scrollLeft >= maxScroll - 1);
+          wrap.querySelectorAll('[data-table-scroll]').forEach(button => {
+            button.disabled = Number(button.dataset.tableScroll) < 0
+              ? scroller.scrollLeft <= 1
+              : scroller.scrollLeft >= maxScroll - 1;
+          });
+        };
+        scroller.addEventListener('scroll', update, { passive: true });
+        scroller.addEventListener('keydown', event => {
+          if (event.target !== scroller || !['ArrowLeft', 'ArrowRight'].includes(event.key)) return;
+          event.preventDefault();
+          scroller.scrollBy({ left: event.key === 'ArrowRight' ? 150 : -150, behavior: 'smooth' });
+        });
+        wrap.querySelectorAll('[data-table-scroll]').forEach(button => button.addEventListener('click', () => {
+          scroller.scrollBy({ left: Number(button.dataset.tableScroll) * Math.min(scroller.clientWidth * .75, 360), behavior: 'smooth' });
+        }));
+        update();
+      });
+    }
+    function dashboardMarkup() {
+      const docs = companyDocs();
+      const selectedMonth = new Date(today.getFullYear(), today.getMonth() + activePeriod, 1);
+      const periodDocs = docs.filter(doc => { const date = new Date(doc.date + 'T12:00:00'); return date.getFullYear() === selectedMonth.getFullYear() && date.getMonth() === selectedMonth.getMonth(); });
+      const income = periodDocs.filter(d => d.direction === 'in').reduce((sum, d) => sum + d.amount, 0);
+      const expense = periodDocs.filter(d => d.direction === 'out').reduce((sum, d) => sum + d.amount, 0);
+      const due = periodDocs.filter(d => d.direction === 'in' && d.status !== 'paid').reduce((sum, d) => sum + d.amount, 0);
+      const recent = [...docs].sort((a, b) => b.date.localeCompare(a.date)).slice(0, 4);
+      const currentMonth = offset => new Intl.DateTimeFormat('ro-RO', { month: 'long', year: 'numeric' }).format(new Date(today.getFullYear(), today.getMonth() + offset, 1)).replace(/^./, char => char.toLocaleUpperCase('ro-RO'));
+      const todayLabel = new Intl.DateTimeFormat('ro-RO', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' }).format(today).replace(/^./, char => char.toLocaleUpperCase('ro-RO'));
+      const chartMonths = Array.from({ length: 6 }, (_, index) => new Date(today.getFullYear(), today.getMonth() + index - 5, 1));
+      const chartValues = chartMonths.map(month => docs.filter(doc => {
+        const date = new Date(doc.date + 'T12:00:00');
+        return date.getFullYear() === month.getFullYear() && date.getMonth() === month.getMonth();
+      }).reduce((totals, doc) => { totals[doc.direction] += doc.amount; return totals; }, { in: 0, out: 0 }));
+      const chartMax = Math.ceil(Math.max(1000, ...chartValues.flatMap(value => [value.in, value.out])) / 5000) * 5000;
+      const chartX = index => 45 + index * 110.4;
+      const chartY = value => 125 - value / chartMax * 105;
+      const chartPath = key => chartValues.map((value, index) => `${index ? 'L' : 'M'} ${chartX(index).toFixed(1)} ${chartY(value[key]).toFixed(1)}`).join(' ');
+      const incomePath = chartPath('in'), expensePath = chartPath('out');
+      const monthLabels = chartMonths.map((month, index) => `<text x="${chartX(index).toFixed(1)}" y="153" text-anchor="middle">${new Intl.DateTimeFormat('ro-RO', { month: 'short' }).format(month).replace('.', '')}</text>`).join('');
+      const ticks = [0, 1, 2, 3].map(index => {
+        const value = chartMax * (1 - index / 3), y = 20 + index * 35;
+        return `<path d="M38 ${y}H610"/><text x="0" y="${y + 3}">${Math.round(value / 1000)}k</text>`;
+      }).join('');
+      const selectedChartIndex = 5 + activePeriod;
+      const tooltipLeft = Math.min(82, Math.max(5, chartX(selectedChartIndex) / 6.2 - 15));
+      return `<div class="welcome"><div><p class="eyebrow">${todayLabel}</p><h1>Bun venit, Sorin 👋</h1><p class="subtitle">Iată cum arată situația financiară a companiei tale.</p></div><div class="welcome-right"><select class="period-select" id="periodSelect" aria-label="Perioadă"><option value="0">${currentMonth(0)}</option><option value="-1">${currentMonth(-1)}</option><option value="-2">${currentMonth(-2)}</option></select><button class="primary-btn" data-action="new-doc">${icons.plus} Document nou</button></div></div>
+      <section class="stat-grid">
+        ${statCard('Venituri înregistrate', shortMoney(income), 'arrowUp', 'income', 'în perioada selectată')}
+        ${statCard('Cheltuieli înregistrate', shortMoney(expense), 'arrowDown', 'expense', 'în perioada selectată')}
+        ${statCard('Sold estimat', shortMoney(income - expense), 'wallet', 'balance', 'venituri minus cheltuieli')}
+        ${statCard('De încasat', shortMoney(due), 'clock', 'pending', `${periodDocs.filter(d => d.direction === 'in' && d.status !== 'paid').length} facturi neachitate`)}
+      </section>
+      <section class="content-grid">
+        <article class="panel"><div class="panel-head"><div><h2 class="panel-title">Evoluție financiară</h2><div class="panel-note">Venituri și cheltuieli în ultimele 6 luni</div></div><div class="chart-legend"><span><i class="legend-dot green"></i>Venituri</span><span><i class="legend-dot gray"></i>Cheltuieli</span></div></div><div class="chart-wrap"><div class="chart"><div class="chart-tooltip" style="left:${tooltipLeft}%">${currentMonth(activePeriod)} · +${shortMoney(chartValues[selectedChartIndex].in)}</div><svg viewBox="0 0 620 165" preserveAspectRatio="none" role="img" aria-label="Grafic cu evoluția veniturilor și cheltuielilor"><defs><linearGradient id="area" x1="0" x2="0" y1="0" y2="1"><stop offset="0" stop-color="#5eaa79" stop-opacity=".19"/><stop offset="1" stop-color="#5eaa79" stop-opacity="0"/></linearGradient></defs><g stroke="#eff2ee" stroke-width="1" fill="none">${ticks}</g><g fill="#9ba29c" font-size="9" font-family="DM Sans">${monthLabels}</g><path d="${incomePath} L ${chartX(5)} 133 L ${chartX(0)} 133 Z" fill="url(#area)"/><path d="${incomePath}" fill="none" stroke="#4b9669" stroke-width="2.7" stroke-linecap="round"/><path d="${expensePath}" fill="none" stroke="#d2ddd5" stroke-width="2" stroke-dasharray="4 4" stroke-linecap="round"/><circle cx="${chartX(selectedChartIndex)}" cy="${chartY(chartValues[selectedChartIndex].in)}" r="4.5" fill="#fff" stroke="#4b9669" stroke-width="2.5"/></svg></div></div></article>
+        <article class="panel"><div class="panel-head"><div><h2 class="panel-title">Activitate recentă</h2><div class="panel-note">Ultimele operațiuni înregistrate</div></div><button class="text-link" data-page="documents">Vezi toate</button></div><div class="activity-list">${recent.length ? recent.map(doc => `<div class="activity-row"><span class="activity-icon ${doc.direction}">${icons[doc.direction === 'in' ? 'arrowDown' : 'arrowUp']}</span><div class="activity-text"><strong>${safe(doc.party)}</strong><span>${safe(doc.number)} · ${dateRo(doc.date)}</span></div><span class="activity-amount ${doc.direction}">${doc.direction === 'in' ? '+' : '−'}${money(doc.amount)}</span></div>`).join('') : '<p class="subtitle">Adaugă primul document pentru a vedea activitatea.</p>'}</div></article>
+      </section>
+      <section class="panel document-panel"><div class="panel-head"><div><h2 class="panel-title">Documente recente</h2><div class="panel-note">Urmărește facturile și documentele companiei</div></div><div class="table-tools"><label class="search-box">${icons.search}<input id="searchInput" type="search" placeholder="Caută documente..." aria-label="Caută documente"></label><select id="statusFilter" class="filter-select" aria-label="Filtrează după stare"><option value="all">Toate stările</option><option value="paid">Achitată</option><option value="pending">În așteptare</option><option value="overdue">Restantă</option></select><button class="text-link" data-page="documents">Toate documentele →</button></div></div><div id="dashboardTable">${docsTable(docs, true)}</div><div class="table-footer"><span>Afișate ${Math.min(docs.length, 5)} din ${docs.length} documente</span><button class="text-link" data-page="documents">Deschide registrul →</button></div></section>
+      <section class="shortcut-grid"><button class="shortcut" data-action="new-doc" data-prefill="in"><span class="shortcut-ico">${icons.arrowUp}</span><span><strong>Factură emisă</strong><small>Înregistrează un venit</small></span></button><button class="shortcut" data-action="new-doc" data-prefill="out"><span class="shortcut-ico">${icons.arrowDown}</span><span><strong>Factură furnizor</strong><small>Adaugă o cheltuială</small></span></button><button class="shortcut" data-action="new-doc"><span class="shortcut-ico">${icons.receipt}</span><span><strong>Adaugă o chitanță</strong><small>Înregistrează o plată</small></span></button><button class="shortcut" data-page="reports"><span class="shortcut-ico">${icons.wallet}</span><span><strong>Vezi rapoartele</strong><small>Analizează rezultatele</small></span></button></section>`;
+    }
+    function documentsMarkup() {
+      const docs = [...companyDocs()].sort((a, b) => b.date.localeCompare(a.date));
+      return `<div class="welcome"><div><p class="eyebrow">Registrul companiei</p><h1>Documente</h1><p class="subtitle">Toate facturile, chitanțele și documentele înregistrate.</p></div><div class="welcome-right"><button class="secondary-btn" id="exportBtn">↓ Exportă CSV</button><button class="primary-btn" data-action="new-doc">${icons.plus} Document nou</button></div></div><section class="panel document-panel"><div class="panel-head"><div><h2 class="panel-title">Registru documente</h2><div class="panel-note">${docs.length} documente în total</div></div><div class="table-tools"><label class="search-box">${icons.search}<input id="searchInput" type="search" placeholder="Caută documente..." aria-label="Caută documente"></label><select id="statusFilter" class="filter-select" aria-label="Filtrează după stare"><option value="all">Toate stările</option><option value="paid">Achitată</option><option value="pending">În așteptare</option><option value="overdue">Restantă</option></select></div></div><div id="documentsTable">${docsTable(docs)}</div><div class="table-footer"><span id="documentCount">Afișate ${docs.length} documente</span><span>Valori exprimate în RON</span></div></section>`;
+    }
+    function companyMarkup() {
+      return `<div class="welcome"><div><p class="eyebrow">Organizează-ți activitatea</p><h1>Companiile mele</h1><p class="subtitle">Gestionează evidența primară pentru toate afacerile tale, dintr-un singur loc.</p></div><div class="welcome-right"><button class="primary-btn" data-action="new-company">${icons.plus} Adaugă companie</button></div></div><div class="stat-grid" style="grid-template-columns:repeat(2,minmax(0,1fr));max-width:580px">${statCard('Companii înregistrate', companies.length, 'building', 'income', 'în spațiul tău de lucru')}${statCard('Documente înregistrate', documents.length, 'receipt', 'balance', 'în toate companiile')}</div><section class="panel"><div class="panel-head"><div><h2 class="panel-title">Portofoliul tău</h2><div class="panel-note">Selectează o companie pentru a-i gestiona documentele</div></div></div><div class="activity-list">${companies.map(company => { const count = documents.filter(d => d.company === company.id).length; return `<div class="activity-row"><span class="activity-icon in">${icons.building}</span><div class="activity-text"><strong>${safe(company.name)}</strong><span>CUI: ${safe(company.cui)} · ${count} ${count === 1 ? 'document' : 'documente'}</span></div><button class="secondary-btn" data-select-company="${safe(company.id)}">Deschide →</button></div>`; }).join('')}</div></section>`;
+    }
+    function simpleMarkup(page) {
+      const details = {
+        income: { title: 'Încasări', eyebrow: 'Urmărește banii care intră', text: 'Facturile emise și încasările companiei tale, la un loc.', icon: 'arrowUp', direction: 'in' },
+        expenses: { title: 'Plăți și cheltuieli', eyebrow: 'Ține cheltuielile sub control', text: 'Facturile furnizorilor și plățile înregistrate pentru compania ta.', icon: 'arrowDown', direction: 'out' },
+        reports: { title: 'Rapoarte financiare', eyebrow: 'O imagine clară asupra afacerii', text: 'Generează un raport CSV cu documentele și situația financiară a companiei.', icon: 'wallet' }
+      }[page];
+      if (page === 'reports') {
+        const docs = companyDocs(), inc = docs.filter(d => d.direction === 'in').reduce((n, d) => n + d.amount, 0), out = docs.filter(d => d.direction === 'out').reduce((n, d) => n + d.amount, 0);
+        return `<div class="welcome"><div><p class="eyebrow">${details.eyebrow}</p><h1>${details.title}</h1><p class="subtitle">Rezumatul activității pentru ${safe(companies.find(c => c.id === activeCompany)?.name || 'companie')}.</p></div><div class="welcome-right"><button class="secondary-btn" id="exportBtn">↓ Descarcă raport CSV</button></div></div><section class="stat-grid">${statCard('Total venituri', shortMoney(inc), 'arrowUp', 'income', 'toate documentele emise')}${statCard('Total cheltuieli', shortMoney(out), 'arrowDown', 'expense', 'toate documentele furnizorilor')}${statCard('Rezultat net', shortMoney(inc - out), 'wallet', 'balance', 'venituri minus cheltuieli')}${statCard('Documente înregistrate', docs.length, 'receipt', 'pending', 'în registrul companiei')}</section><section class="panel"><div class="panel-head"><div><h2 class="panel-title">Situația documentelor</h2><div class="panel-note">Rezumat pe stare de plată</div></div></div><div class="activity-list">${['paid','pending','overdue'].map(status => { const list = docs.filter(d => d.status === status); return `<div class="activity-row"><div class="activity-text"><strong>${statusLabel(status)}</strong><span>${list.length} ${list.length === 1 ? 'document' : 'documente'}</span></div><strong style="font-size:11px">${money(list.reduce((n,d)=>n+d.amount,0))}</strong></div>`; }).join('')}</div></section>`;
+      }
+      const docs = companyDocs().filter(d => d.direction === details.direction).sort((a,b) => b.date.localeCompare(a.date));
+      const total = docs.reduce((n,d) => n + d.amount, 0);
+      return `<div class="welcome"><div><p class="eyebrow">${details.eyebrow}</p><h1>${details.title}</h1><p class="subtitle">${details.text}</p></div><div class="welcome-right"><button class="primary-btn" data-action="new-doc" data-prefill="${details.direction}">${icons.plus} Înregistrează ${page === 'income' ? 'o încasare' : 'o plată'}</button></div></div><section class="stat-grid" style="grid-template-columns:repeat(2,minmax(0,1fr));max-width:580px">${statCard('Total înregistrat', shortMoney(total), details.icon, page === 'income' ? 'income' : 'expense', `${docs.length} documente în registru`)}${statCard(page === 'income' ? 'De încasat' : 'De achitat', shortMoney(docs.filter(d => d.status !== 'paid').reduce((n,d) => n + d.amount, 0)), 'clock', 'pending', 'documente neachitate')}</section><section class="panel document-panel"><div class="panel-head"><div><h2 class="panel-title">Registru — ${details.title.toLowerCase()}</h2><div class="panel-note">Documentele companiei selectate</div></div><div class="table-tools"><label class="search-box">${icons.search}<input id="searchInput" type="search" placeholder="Caută documente..." aria-label="Caută documente"></label><select id="statusFilter" class="filter-select" aria-label="Filtrează după stare"><option value="all">Toate stările</option><option value="paid">Achitată</option><option value="pending">În așteptare</option><option value="overdue">Restantă</option></select></div></div><div id="documentsTable">${docsTable(docs)}</div></section>`;
+    }
+    function render() {
+      closeRowActionMenu();
+      updateCompanySelect();
+      renderNotificationPopover();
+      document.getElementById('crumb').textContent = pageTitles[activePage];
+      document.querySelectorAll('.nav-btn[data-page]').forEach(btn => btn.classList.toggle('active', btn.dataset.page === activePage));
+      const content = document.getElementById('pageContent');
+      content.innerHTML = activePage === 'overview' ? dashboardMarkup() : activePage === 'documents' ? documentsMarkup() : activePage === 'companies' ? companyMarkup() : simpleMarkup(activePage);
+      const search = document.getElementById('searchInput'), filter = document.getElementById('statusFilter');
+      if (search) { search.value = searchTerm; search.addEventListener('input', () => { searchTerm = search.value; updateTable(); }); }
+      if (filter) { filter.value = statusFilter; filter.addEventListener('change', () => { statusFilter = filter.value; updateTable(); }); }
+      const period = document.getElementById('periodSelect');
+      if (period) { period.value = String(activePeriod); period.addEventListener('change', () => { activePeriod = Number(period.value); render(); }); }
+      const exportBtn = document.getElementById('exportBtn');
+      if (exportBtn) exportBtn.addEventListener('click', exportCsv);
+      content.querySelectorAll('[data-page]').forEach(button => button.addEventListener('click', () => goPage(button.dataset.page)));
+      content.querySelectorAll('[data-action="new-doc"]').forEach(button => button.addEventListener('click', () => openDocModal(button.dataset.prefill || 'in')));
+      const newCompany = content.querySelector('[data-action="new-company"]');
+      if (newCompany) newCompany.addEventListener('click', openCompanyModal);
+      content.querySelectorAll('[data-select-company]').forEach(button => button.addEventListener('click', () => { activeCompany = button.dataset.selectCompany; saveData(); goPage('overview'); toast('Compania a fost selectată.'); }));
+      content.querySelectorAll('[data-attachment]').forEach(button => button.addEventListener('click', () => openAttachment(button.dataset.attachment)));
+      wireTableScroll(content);
+    }
+    function updateTable() {
+      const target = document.getElementById(activePage === 'overview' ? 'dashboardTable' : 'documentsTable');
+      if (!target) return;
+      const docs = activePage === 'overview' ? companyDocs() : activePage === 'documents' ? [...companyDocs()].sort((a,b) => b.date.localeCompare(a.date)) : companyDocs().filter(d => d.direction === (activePage === 'income' ? 'in' : 'out')).sort((a,b) => b.date.localeCompare(a.date));
+      target.innerHTML = docsTable(docs, activePage === 'overview');
+      target.querySelectorAll('[data-attachment]').forEach(button => button.addEventListener('click', () => openAttachment(button.dataset.attachment)));
+      wireTableScroll(target);
+      const count = document.getElementById('documentCount');
+      if (count) count.textContent = `Afișate ${docs.filter(d => (statusFilter === 'all' || d.status === statusFilter) && (!searchTerm || `${d.number} ${d.party} ${d.type}`.toLowerCase().includes(searchTerm.toLowerCase()))).length} documente`;
+    }
+    function goPage(page) { activePage = page; statusFilter = 'all'; searchTerm = ''; render(); window.scrollTo({ top: 0, behavior: 'smooth' }); }
+    function toast(message) {
+      const element = document.getElementById('toast'); element.textContent = message; element.classList.add('show');
+      clearTimeout(toast.timer); toast.timer = setTimeout(() => element.classList.remove('show'), 2700);
+    }
+    function openModal(html, afterOpen) {
+      const backdrop = document.getElementById('modalBackdrop');
+      document.getElementById('modalContent').innerHTML = html; backdrop.classList.add('open');
+      if (afterOpen) afterOpen();
+      backdrop.onclick = event => { if (event.target === backdrop) closeModal(); };
+      document.onkeydown = event => { if (event.key === 'Escape') closeModal(); };
+    }
+    function closeModal() { document.getElementById('modalBackdrop').classList.remove('open'); document.onkeydown = null; }
+    function openDocModal(direction = 'in') {
+      const typeOptions = direction === 'in' ? ['Factură emisă', 'Chitanță', 'Bon fiscal'] : ['Factură furnizor', 'Chitanță', 'Bon fiscal', 'Ordin de plată'];
+      openModal(`<div class="modal-heading"><div><h2 id="modalTitle">Document nou</h2><p>Completează detaliile documentului companiei.</p></div><button class="close-btn" type="button" aria-label="Închide" data-close>×</button></div><form id="docForm"><div class="form-grid"><div class="field"><label for="docType">Tip document</label><select id="docType">${typeOptions.map(type => `<option>${type}</option>`).join('')}</select></div><div class="field"><label for="docNumber">Număr document</label><input id="docNumber" required placeholder="ex. FAC-2025-085"></div><div class="field full"><label for="docParty">${direction === 'in' ? 'Client / plătitor' : 'Furnizor / beneficiar'}</label><input id="docParty" required placeholder="Denumirea clientului sau furnizorului"></div><div class="field"><label for="docDate">Data documentului</label><input id="docDate" type="date" value="${isoDate(today)}" required></div><div class="field"><label for="docDue">Data scadenței</label><input id="docDue" type="date" value="${isoDate(today)}" required></div><div class="field"><label for="docAmount">Valoare (lei)</label><input id="docAmount" type="number" min="0.01" step="0.01" placeholder="0,00" required></div><div class="field"><label for="docStatus">Stare plată</label><select id="docStatus"><option value="pending">În așteptare</option><option value="paid">Achitată</option></select></div><div class="field full"><label for="docPdf">Atașează scanul documentului (PDF, opțional)</label><input class="file-input" id="docPdf" type="file" accept="application/pdf,.pdf"><span class="field-hint" id="pdfHint">PDF de maximum 20 MB. Fișierul se salvează numai în acest browser.</span></div></div><div class="modal-actions"><button class="secondary-btn" type="button" data-close>Anulează</button><button class="primary-btn" type="submit">Salvează documentul</button></div></form>`, () => {
+        document.querySelectorAll('[data-close]').forEach(button => button.addEventListener('click', closeModal));
+        const pdfInput = document.getElementById('docPdf');
+        pdfInput.addEventListener('change', () => {
+          const file = pdfInput.files[0];
+          document.getElementById('pdfHint').textContent = file
+            ? `${file.name} · ${(file.size / (1024 * 1024)).toFixed(2)} MB`
+            : 'PDF de maximum 20 MB. Fișierul se salvează numai în acest browser.';
+        });
+        document.getElementById('docForm').addEventListener('submit', async event => {
+          event.preventDefault();
+          const amount = Number(document.getElementById('docAmount').value);
+          if (!Number.isFinite(amount) || amount <= 0) { toast('Introdu o valoare mai mare decât zero.'); return; }
+          const date = document.getElementById('docDate').value, due = document.getElementById('docDue').value;
+          if (due < date) { toast('Scadența nu poate fi înaintea datei documentului.'); return; }
+          const file = pdfInput.files[0] || null;
+          if (file && file.size > MAX_PDF_SIZE) { toast('PDF-ul depășește limita de 20 MB.'); return; }
+          if (file && (!file.name.toLowerCase().endsWith('.pdf') || (await file.slice(0, 5).text()) !== '%PDF-')) { toast('Fișierul selectat nu este un PDF valid.'); return; }
+          const id = `d${Date.now()}`;
+          const attachment = file ? { name: file.name, size: file.size, type: 'application/pdf' } : undefined;
+          const newDocument = { id, company: activeCompany, number: document.getElementById('docNumber').value.trim(), type: document.getElementById('docType').value, party: document.getElementById('docParty').value.trim(), date, due, amount, status: document.getElementById('docStatus').value, direction, attachment };
+          const submitButton = event.submitter;
+          submitButton.disabled = true;
+          submitButton.textContent = 'Se salvează…';
+          let attachmentSaved = false;
+          try {
+            if (file) {
+              await storeAttachment({ id, name: file.name, size: file.size, type: 'application/pdf', blob: file });
+              attachmentSaved = true;
+            }
+            documents.unshift(newDocument);
+            try {
+              saveData();
+            } catch (error) {
+              documents = documents.filter(document => document.id !== id);
+              if (attachmentSaved) await removeAttachment(id);
+              throw error;
+            }
+            closeModal(); render(); toast(file ? 'Documentul și PDF-ul au fost salvate în acest browser.' : 'Documentul a fost înregistrat.');
+          } catch (error) {
+            console.error('Eroare la salvarea documentului sau a atașamentului PDF.', error);
+            toast(`Nu s-a putut salva documentul: ${error.message || 'eroare necunoscută.'}`);
+            submitButton.disabled = false;
+            submitButton.textContent = 'Salvează documentul';
+          }
+        });
+        document.getElementById('docNumber').focus();
+      });
+    }
+    async function openAttachment(id) {
+      const doc = documents.find(document => document.id === id);
+      if (!doc?.attachment) { toast('Nu există un PDF atașat acestui document.'); return; }
+      const previewWindow = window.open('', '_blank');
+      try {
+        const attachment = await getAttachment(id);
+        if (!attachment?.blob) throw new Error('PDF-ul nu mai este disponibil în acest browser.');
+        const url = URL.createObjectURL(attachment.blob);
+        if (previewWindow) {
+          previewWindow.location.replace(url);
+        } else {
+          const link = document.createElement('a');
+          link.href = url;
+          link.download = attachment.name;
+          document.body.appendChild(link);
+          link.click();
+          link.remove();
+        }
+        setTimeout(() => URL.revokeObjectURL(url), 60000);
+      } catch (error) {
+        if (previewWindow) previewWindow.close();
+        console.error('Eroare la deschiderea atașamentului PDF.', error);
+        toast(`PDF-ul nu a putut fi deschis: ${error.message || 'eroare necunoscută.'}`);
+      }
+    }
+    function openCompanyModal() {
+      openModal(`<div class="modal-heading"><div><h2 id="modalTitle">Adaugă o companie</h2><p>Începe evidența primară pentru o afacere nouă.</p></div><button class="close-btn" type="button" aria-label="Închide" data-close>×</button></div><form id="companyForm"><div class="form-grid"><div class="field full"><label for="companyName">Denumire companie</label><input id="companyName" required placeholder="ex. Firma Mea SRL"></div><div class="field full"><label for="companyCui">CUI / CIF</label><input id="companyCui" required placeholder="ex. RO12345678"></div></div><div class="modal-actions"><button class="secondary-btn" type="button" data-close>Anulează</button><button class="primary-btn" type="submit">Adaugă compania</button></div></form>`, () => {
+        document.querySelectorAll('[data-close]').forEach(button => button.addEventListener('click', closeModal));
+        document.getElementById('companyForm').addEventListener('submit', event => {
+          event.preventDefault();
+          const name = document.getElementById('companyName').value.trim(), cui = document.getElementById('companyCui').value.trim();
+          if (companies.some(company => company.cui.toLowerCase() === cui.toLowerCase())) { toast('Există deja o companie cu acest CUI.'); return; }
+          companies.push({ id: `c${Date.now()}`, name, cui }); activeCompany = companies[companies.length - 1].id;
+          saveData(); closeModal(); render(); toast('Compania a fost adăugată.');
+        });
+        document.getElementById('companyName').focus();
+      });
+    }
+    function togglePaid(id) {
+      const doc = documents.find(item => item.id === id); if (!doc) return;
+      doc.status = doc.status === 'paid' ? 'pending' : 'paid';
+      saveData(); render(); toast(doc.status === 'paid' ? 'Document marcat ca achitat.' : 'Document marcat ca neachitat.');
+    }
+    function openEditDocModal(id) {
+      const doc = documents.find(item => item.id === id);
+      if (!doc) { toast('Documentul nu mai este disponibil.'); return; }
+      const types = doc.direction === 'in'
+        ? ['Factură emisă', 'Chitanță', 'Bon fiscal']
+        : ['Factură furnizor', 'Chitanță', 'Bon fiscal', 'Ordin de plată'];
+      const options = [...new Set([...types, doc.type])];
+      openModal(`<div class="modal-heading"><div><h2 id="modalTitle">Editează documentul</h2><p>Actualizează detaliile documentului.</p></div><button class="close-btn" type="button" aria-label="Închide" data-close>×</button></div><form id="editDocForm"><div class="form-grid"><div class="field"><label for="editDocType">Tip document</label><select id="editDocType">${options.map(type => `<option ${type === doc.type ? 'selected' : ''}>${safe(type)}</option>`).join('')}</select></div><div class="field"><label for="editDocNumber">Număr document</label><input id="editDocNumber" required value="${safe(doc.number)}"></div><div class="field full"><label for="editDocParty">Client / furnizor</label><input id="editDocParty" required value="${safe(doc.party)}"></div><div class="field"><label for="editDocDate">Data documentului</label><input id="editDocDate" type="date" required value="${safe(doc.date)}"></div><div class="field"><label for="editDocDue">Data scadenței</label><input id="editDocDue" type="date" required value="${safe(doc.due)}"></div><div class="field"><label for="editDocAmount">Valoare (lei)</label><input id="editDocAmount" type="number" min="0.01" step="0.01" required value="${safe(doc.amount)}"></div><div class="field"><label for="editDocStatus">Stare plată</label><select id="editDocStatus"><option value="pending" ${doc.status === 'pending' ? 'selected' : ''}>În așteptare</option><option value="paid" ${doc.status === 'paid' ? 'selected' : ''}>Achitată</option><option value="overdue" ${doc.status === 'overdue' ? 'selected' : ''}>Restantă</option></select></div><div class="field full"><span class="field-hint">${doc.attachment ? `PDF atașat: ${safe(doc.attachment.name)}. Atașamentul existent va fi păstrat.` : 'Nu există un PDF atașat acestui document.'}</span></div></div><div class="modal-actions"><button class="secondary-btn" type="button" data-close>Anulează</button><button class="primary-btn" type="submit">Salvează modificările</button></div></form>`, () => {
+        document.querySelectorAll('[data-close]').forEach(button => button.addEventListener('click', closeModal));
+        document.getElementById('editDocForm').addEventListener('submit', event => {
+          event.preventDefault();
+          const amount = Number(document.getElementById('editDocAmount').value);
+          const date = document.getElementById('editDocDate').value;
+          const due = document.getElementById('editDocDue').value;
+          if (!Number.isFinite(amount) || amount <= 0) { toast('Introdu o valoare mai mare decât zero.'); return; }
+          if (due < date) { toast('Scadența nu poate fi înaintea datei documentului.'); return; }
+          const previous = { ...doc };
+          Object.assign(doc, {
+            type: document.getElementById('editDocType').value,
+            number: document.getElementById('editDocNumber').value.trim(),
+            party: document.getElementById('editDocParty').value.trim(),
+            date, due, amount,
+            status: document.getElementById('editDocStatus').value
+          });
+          try {
+            saveData();
+          } catch (error) {
+            Object.assign(doc, previous);
+            console.error('Eroare la salvarea modificărilor documentului.', error);
+            toast('Modificările nu au putut fi salvate în browser.');
+            return;
+          }
+          closeModal(); render(); toast('Modificările documentului au fost salvate.');
+        });
+        document.getElementById('editDocNumber').focus();
+      });
+    }
+    function confirmDeleteDoc(id) {
+      const doc = documents.find(item => item.id === id);
+      if (!doc) { toast('Documentul nu mai este disponibil.'); return; }
+      openModal(`<div class="modal-heading"><div><h2 id="modalTitle">Ștergi documentul?</h2><p>Documentul ${safe(doc.number)} va fi eliminat definitiv din registru.</p></div><button class="close-btn" type="button" aria-label="Închide" data-close>×</button></div><p style="font-size:11px;color:#626c65;line-height:1.6">Ești pe cale să ștergi documentul de la <strong>${safe(doc.party)}</strong>, în valoare de <strong>${money(doc.amount)}</strong>${doc.attachment ? ', împreună cu PDF-ul atașat' : ''}. Această acțiune nu poate fi anulată.</p><div class="modal-actions"><button class="secondary-btn" type="button" data-close>Anulează</button><button class="primary-btn" type="button" id="confirmDeleteDoc" style="background:var(--red)">Șterge documentul</button></div>`, () => {
+        document.querySelectorAll('[data-close]').forEach(button => button.addEventListener('click', closeModal));
+        document.getElementById('confirmDeleteDoc').addEventListener('click', async event => {
+          const button = event.currentTarget;
+          button.disabled = true;
+          button.textContent = 'Se șterge…';
+          const index = documents.findIndex(item => item.id === id);
+          if (index < 0) { closeModal(); toast('Documentul nu mai este disponibil.'); return; }
+          const [removed] = documents.splice(index, 1);
+          try {
+            saveData();
+          } catch (error) {
+            documents.splice(index, 0, removed);
+            console.error('Eroare la ștergerea documentului.', error);
+            toast('Documentul nu a putut fi șters din registru.');
+            closeModal();
+            return;
+          }
+          closeModal(); render();
+          if (removed.attachment) {
+            try {
+              await removeAttachment(id);
+              toast('Documentul și PDF-ul atașat au fost șterse.');
+            } catch (error) {
+              console.error('Documentul a fost șters, dar PDF-ul local nu a putut fi șters.', error);
+              toast('Documentul a fost șters; PDF-ul rămas în arhiva locală nu a putut fi eliminat.');
+            }
+          } else {
+            toast('Documentul a fost șters.');
+          }
+        });
+      });
+    }
+    function exportCsv() {
+      const docs = companyDocs();
+      const rows = [['Număr document', 'Tip document', 'Partener', 'Data', 'Scadență', 'Valoare (RON)', 'Stare', 'Direcție'], ...docs.map(d => [d.number, d.type, d.party, d.date, d.due, d.amount.toFixed(2), statusLabel(d.status), d.direction === 'in' ? 'Încasare' : 'Plată'])];
+      const csv = '\uFEFF' + rows.map(row => row.map(cell => `"${String(cell).replace(/"/g, '""')}"`).join(';')).join('\r\n');
+      const url = URL.createObjectURL(new Blob([csv], { type: 'text/csv;charset=utf-8;' }));
+      const link = document.createElement('a'); link.href = url; link.download = `documente-${(companies.find(c => c.id === activeCompany)?.name || 'companie').replace(/[^a-z0-9]+/gi, '-').toLowerCase()}.csv`;
+      document.body.appendChild(link); link.click(); link.remove(); URL.revokeObjectURL(url); toast('Raportul CSV a fost descărcat.');
+    }
+    document.querySelectorAll('.nav-btn[data-page]').forEach(button => button.addEventListener('click', () => goPage(button.dataset.page)));
+    document.addEventListener('click', event => {
+      const trigger = event.target.closest('[data-row-menu]');
+      if (trigger) { openRowActionMenu(trigger, trigger.dataset.rowMenu); return; }
+      const action = event.target.closest('[data-row-action]');
+      if (action) {
+        const { documentId } = action.dataset;
+        const actionType = action.dataset.rowAction;
+        closeRowActionMenu();
+        if (actionType === 'toggle-status') togglePaid(documentId);
+        else if (actionType === 'edit') openEditDocModal(documentId);
+        else if (actionType === 'open-pdf') openAttachment(documentId);
+        else if (actionType === 'delete') confirmDeleteDoc(documentId);
+        return;
+      }
+      if (!event.target.closest('#rowActionMenu')) closeRowActionMenu();
+    });
+    document.addEventListener('keydown', event => {
+      const menu = document.getElementById('rowActionMenu');
+      if (!menu.classList.contains('open')) return;
+      if (event.key === 'Escape') { event.preventDefault(); closeRowActionMenu(true); return; }
+      if (event.key === 'ArrowDown' || event.key === 'ArrowUp') {
+        const items = [...menu.querySelectorAll('[role="menuitem"]:not(:disabled)')];
+        const current = items.indexOf(document.activeElement);
+        const direction = event.key === 'ArrowDown' ? 1 : -1;
+        items[(current + direction + items.length) % items.length]?.focus();
+        event.preventDefault();
+      }
+    });
+    window.addEventListener('resize', () => closeRowActionMenu());
+    window.addEventListener('scroll', () => closeRowActionMenu(), true);
+    document.getElementById('companySelect').addEventListener('change', event => { activeCompany = event.target.value; saveData(); render(); toast('A fost schimbată compania activă.'); });
+    document.getElementById('notificationBtn').addEventListener('click', () => {
+      const popover = document.getElementById('notificationPopover');
+      if (popover.classList.contains('open')) closeNotificationPopover();
+      else openNotificationPopover();
+    });
+    document.getElementById('notificationPopover').addEventListener('click', event => {
+      if (event.target.closest('.notification-close')) { closeNotificationPopover(); document.getElementById('notificationBtn').focus(); return; }
+      const notification = event.target.closest('[data-notification-doc]');
+      if (notification) { goToNotificationDocument(notification.dataset.notificationDoc); return; }
+      if (event.target.closest('[data-notification-page]')) { closeNotificationPopover(); goPage('documents'); }
+    });
+    document.addEventListener('click', event => {
+      if (!event.target.closest('#notificationWrap')) closeNotificationPopover();
+    });
+    document.addEventListener('keydown', event => {
+      if (event.key === 'Escape' && document.getElementById('notificationPopover').classList.contains('open')) {
+        closeNotificationPopover();
+        document.getElementById('notificationBtn').focus();
+      }
+    });
+    document.getElementById('helpBtn').addEventListener('click', () => toast('Centrul de ajutor va fi disponibil în curând.'));
+    render();
+  </script>
+</body>
+</html>
